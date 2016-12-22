@@ -1,0 +1,28 @@
+box: node
+
+build:
+  steps:
+    - npm-install
+
+    - script:
+      name: lint
+      code: npm run lint
+
+    - script:
+      name: build
+      code: npm run build
+
+    - script:
+      name: test with coverage
+      code: |
+        npm run --silent ci-test
+        npm run --silent ci-cover
+
+deploy:
+  steps:
+    - script:
+      name: npm publish
+      code: |
+        npm config set unsafe-perm true
+        echo "//registry.npmjs.org/:_authToken=${NPM_TOKEN}" > ~/.npmrc
+        npm publish . --tag latest
