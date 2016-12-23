@@ -54,12 +54,12 @@ export async function shardKey(argv, key) {
     const m = keymasters[i].match(/([^#]+)#?(.*)/);
     let folderName = argv.me;
     if (argv.me !== m[1]) {
-      folderName = [argv.me, m[0]].join(',');
+      folderName = [argv.me, m[1]].join(',');
     }
     const fname = `${argv.keyname}${m[2] ? '.' : ''}${m[2] || ''}.shard`;
     const destinationPath = path.join(argv.kbfsroot, 'private', folderName, fname);
     promises.push(write(destinationPath, s));
-    i++;
+    i += 1;
   }
   await Promise.all(promises);
 }
@@ -75,13 +75,9 @@ export default async function create(argv) {
 
   // Create a key
   const { publicKey, privateKey, secret } = await createKP();
-  console.error('private', privateKey.toString('base64'));
-  console.error('symm', secret.toString('base64'));
-  try {
-    await shardKey(argv, secret);
-    console.log('Completed shard generation for public key:');
-    console.log(publicKey);
-  } catch (error) {
-    console.error('foo');
-  }
+  await shardKey(argv, secret);
+  console.log('Completed shard generation for public key:');
+  console.log(publicKey);
+
+  return 0;
 }
