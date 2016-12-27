@@ -15,7 +15,7 @@
 
 # Custom
 .transpiled
-gbdb.json
+config.json
 
 # Stock
 *.seed

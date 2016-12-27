@@ -8,13 +8,13 @@
     "lint": "eslint .",
     "test": "tap --node-arg=-r --node-arg=babel-register tests/*.js",
     "test-some": "tap --node-arg=-r --node-arg=babel-register",
-    "cover": "cross-env BABEL_ENV=test nyc tap tests/test_*.js && nyc check-coverage && nyc report --reporter=text",
+    "cover": "cross-env BABEL_ENV=test nyc tap tests/test_*.js && nyc check-coverage --lines=70 --statements=70 --functions=80 --branches=50 && nyc report --reporter=text",
     "ci-test": "cross-env NODE_ENV=test nyc tap -Rtap tests/test_*.js | tee .tap_output | tap -Rspec -",
     "ci-cover": "nyc check-coverage --lines=70 --statements=70 --functions=80 --branches=50",
-    "create-sealed-key": "node -r babel-register src/index.js create-sealed-key"
+    "cli": "node -r babel-register src/index.js"
   },
   "dependencies": {
-    "minimist": "^1.2.0",
+    "nconf": "^0.8.4",
     "node-forge": "^0.6.46",
     "prompt": "^1.0.0",
     "secrets.js-grempe": "^1.1.0"
