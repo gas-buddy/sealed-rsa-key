@@ -16,6 +16,7 @@
   "dependencies": {
     "minimist": "^1.2.0",
     "node-forge": "^0.6.46",
+    "prompt": "^1.0.0",
     "secrets.js-grempe": "^1.1.0"
   },
   "devDependencies": {
@@ -37,7 +38,6 @@
     "sourceMap": false,
     "instrument": false,
     "reporter": [
-      "text",
       "lcov"
     ]
   },

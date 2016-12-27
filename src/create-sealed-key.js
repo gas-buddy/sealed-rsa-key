@@ -1,9 +1,9 @@
-import fs from 'fs';
 import path from 'path';
 import crypto from 'crypto';
 import assert from 'assert';
 import { pki } from 'node-forge';
 import secrets from 'secrets.js-grempe';
+import { write } from './util';
 
 export async function createKP() {
   return new Promise((accept, reject) => {
@@ -17,29 +17,15 @@ export async function createKP() {
       const cipher = crypto.createCipheriv('aes-256-cbc', symmetricKey, iv);
 
       const publicKey = pki.publicKeyToPem(k.publicKey);
-      const n = Buffer.from(k.privateKey.n.toByteArray());
+      const rawPrivateKey = Buffer.from(pki.privateKeyToPem(k.privateKey));
 
-      let cipheredKey = cipher.update(n);
+      let cipheredKey = cipher.update(rawPrivateKey);
       cipheredKey = Buffer.concat([cipheredKey, cipher.final()]);
       accept({
         publicKey,
         secret: Buffer.concat([iv, symmetricKey]),
         privateKey: cipheredKey,
       });
-    });
-  });
-}
-
-export async function write(fn, content) {
-  return new Promise((accept, reject) => {
-    console.log(`Writing ${fn}`);
-    fs.writeFile(fn, content, (error) => {
-      if (error) {
-        reject(error);
-      } else {
-        console.log(`Wrote ${fn}`);
-        accept();
-      }
     });
   });
 }
@@ -54,7 +40,7 @@ export async function shardKey(argv, key) {
     const m = keymasters[i].match(/([^#]+)#?(.*)/);
     let folderName = argv.me;
     if (argv.me !== m[1]) {
-      folderName = [argv.me, m[1]].join(',');
+      folderName = [argv.me, m[1]].sort().join(',');
     }
     const fname = `${argv.keyname}${m[2] ? '.' : ''}${m[2] || ''}.shard`;
     const destinationPath = path.join(argv.kbfsroot, 'private', folderName, fname);
@@ -76,6 +62,14 @@ export default async function create(argv) {
   // Create a key
   const { publicKey, privateKey, secret } = await createKP();
   await shardKey(argv, secret);
+  await write(
+    path.join(argv.kbfsroot, 'private', argv.me, `${argv.keyname}.key`),
+    privateKey
+  );
+  await write(
+    path.join(argv.kbfsroot, 'private', argv.me, `${argv.keyname}.pem`),
+    publicKey
+  );
   console.log('Completed shard generation for public key:');
   console.log(publicKey);
 
