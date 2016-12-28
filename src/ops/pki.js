@@ -97,18 +97,18 @@ async function selfSign(args, state, callback) {
 
   cert.setExtensions(certExtensions);
 
-  cert.publicKey = state.keypair.publicKey;
-  cert.sign(state.keypair.privateKey);
+  cert.publicKey = state.keys[args[2]].publicKey;
+  cert.sign(state.keys[args[2]].privateKey);
 
   const final = pki.certificateToPem(cert);
-  if (args[2]) {
-    await write(args[2], final);
+  if (args[3]) {
+    await write(args[3], final);
   }
   callback(final);
 }
 
 async function signCsr(args, state, callback) {
-  const csr = pki.certificationRequestFromPem(await read(args[2]));
+  const csr = pki.certificationRequestFromPem(await read(args[3]));
   if (!csr.verify()) {
     callback('Invalid CSR');
     return;
@@ -123,29 +123,29 @@ async function signCsr(args, state, callback) {
   cert.setSubject(csr.subject.attributes);
 
   if (args[3]) {
-    const caCert = pki.certificateFromPem(await read(args[3]));
+    const caCert = pki.certificateFromPem(await read(args[4]));
     cert.setIssuer(caCert.subject.attributes);
   }
 
   cert.setExtensions(certExtensions);
 
   cert.publicKey = csr.publicKey;
-  cert.sign(state.keypair.privateKey);
+  cert.sign(state.keys[args[2]].privateKey);
   callback(pki.certificateToPem(cert));
 }
 
 export default async function op(args, state, callback) {
-  if (!state.keypair) {
-    return callback('The keypair is not available. It must be unsealed or generated first');
+  if (!state.keys || !state.keys[args[2]]) {
+    return callback('The requested keypair is not available. It must be loaded or generated first');
   }
   if (args[1] === 'encrypt') {
-    const cipher = state.keypair.publicKey.encrypt(Buffer.from(args[2], args[3] || 'utf8'));
+    const cipher = state.keys[args[2]].publicKey.encrypt(Buffer.from(args[3], args[4] || 'utf8'));
     const encoded = Buffer.from(cipher, 'binary').toString('base64');
     callback(encoded);
     return encoded;
   } else if (args[1] === 'decrypt') {
-    const plain = state.keypair.privateKey.decrypt(Buffer.from(args[2], 'base64'));
-    const raw = Buffer.from(plain, 'binary').toString(args[3] || 'utf8');
+    const plain = state.keys[args[2]].privateKey.decrypt(Buffer.from(args[3], 'base64'));
+    const raw = Buffer.from(plain, 'binary').toString(args[4] || 'utf8');
     callback(raw);
     return raw;
   } else if (args[1] === 'selfsign') {

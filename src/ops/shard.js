@@ -19,11 +19,11 @@ export default async function shard(args, state, callback) {
     return callback('Please set the \'keyname\' value to identify the key to work with');
   }
 
-  let shards = nconf.get('shards');
+  let shardCount = nconf.get('shards');
   if (args.length >= 1) {
-    shards = Number(args[1]);
+    shardCount = Number(args[1]);
   }
-  if (!Number.isInteger(shards) || shards < 2) {
+  if (!Number.isInteger(shardCount) || shardCount < 2) {
     return abortWithUsage('Invalid shards argument - must be a positive integer > 1', callback);
   }
 
@@ -40,20 +40,25 @@ export default async function shard(args, state, callback) {
     return null;
   }
 
-  if (keymasters.length !== shards) {
-    return callback(`Keymaster list must be the same length (${keymasters.length}) as the number of shards (${shards})`);
+  if (keymasters.length !== shardCount) {
+    return callback(`Keymaster list must be the same length (${keymasters.length}) as the number of shards (${shardCount})`);
   }
 
-  const symmetricKey = crypto.randomBytes(32);
-  const iv = crypto.randomBytes(16);
-  const secret = state.secret = Buffer.concat([iv, symmetricKey]);
+  const secret = state.secret = crypto.randomBytes(32);
   state.rl.setPrompt(`${nconf.get('keyname')}:unsealed> `);
-  const shares = secrets.share(secret.toString('hex'), shards, threshold);
+
+  // Provide a little certainty about the secret when unsharded
+  const shasum = crypto.createHash('sha1');
+  shasum.update(secret);
+  const sha = shasum.digest();
+  const finalSecret = Buffer.concat([sha, secret]);
+
+  const shards = secrets.share(finalSecret.toString('hex'), shardCount, threshold);
 
   const promises = [];
-  for (let i = 0; i < shares.length; i += 1) {
+  for (let i = 0; i < shards.length; i += 1) {
     const km = keymasters[i];
-    const s = shares[i];
+    const s = shards[i];
 
     const { folderName, suffix } = parseKeymaster(km);
     const fname = `${nconf.get('keyname')}${suffix}.shard`;

@@ -5,6 +5,7 @@ import repl from 'repl';
 import shard from './ops/shard';
 import { setLogger } from './lib/util';
 import generate from './ops/generate';
+import loadkey from './ops/loadkey';
 import { accept, verify } from './ops/accept';
 import pki from './ops/pki';
 import { encrypt, decrypt } from './ops/encryptDecrypt';
@@ -33,10 +34,13 @@ Top-level commands:
     secures it with a password.
   verify
     Verify your shard and password
-  generate <keymasters>
-    Verify that no shards still must be accepted, generate the new RSA
+  generate <keyname> <keymasters>
+    Verify that no shards still must be accepted, generate a new RSA
     key and save the encrypted private key blob to each keymaster shared
     folder.
+  loadkey <keyname> [fullpath]
+    Load a secured keypair into the key named keyname (by default it
+    looks in the keybase private directory for the .key file)
   unseal <keymasters>
     Attempt to unseal the key using shards from keymasters. If there is
     an unseal attempt in progress, it will check for responses from
@@ -48,11 +52,11 @@ Top-level commands:
     Encrypt some content using the symmetric secret key
   decrypt <content> [format]
     Decrypt some ciphertext using the symmetric secret key
-  pki encrypt <content> [format]
+  pki encrypt <keyname> <content> [format]
     Encrypt some content using the current keypair
-  pki decrypt <content> [format]
+  pki decrypt <keyname> <content> [format]
     Decrypt some content using the current keypair
-  pki selfsign [output filename]
+  pki selfsign <keyname> [output filename]
     Generate a self signed certificate for the current keypair
   pki csr <csr file> [ca cert]
     Create a certificate for a CSR
@@ -72,7 +76,7 @@ const set = function setConfig(parts, state, callback) {
 };
 
 const commandFunctions = {
-  generate, shard, accept, unseal, verify, help, approve, set, pki, encrypt, decrypt,
+  generate, shard, accept, unseal, verify, help, approve, set, pki, encrypt, decrypt, loadkey,
 };
 const state = {};
 

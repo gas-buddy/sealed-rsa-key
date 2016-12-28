@@ -74,13 +74,13 @@ djmax's REPL session (because if he had quit, he would need to unseal before gen
 indicates our secret is currently unsealed.
 
 ```
-testkey:unsealed> generate djmax,bob,jane
-Wrote /keybase/private/djmax/testkey.key
-Wrote /keybase/private/djmax/testkey.pem
-Wrote /keybase/private/bob,djmax/testkey.key
-Wrote /keybase/private/bob,djmax/testkey.pem
-Wrote /keybase/private/djmax,jane/testkey.key
-Wrote /keybase/private/djmax,jane/testkey.pem
+testkey:unsealed> generate testrsa djmax,bob,jane
+Wrote /keybase/private/djmax/testrsa.key
+Wrote /keybase/private/djmax/testrsa.pem
+Wrote /keybase/private/bob,djmax/testrsa.key
+Wrote /keybase/private/bob,djmax/testrsa.pem
+Wrote /keybase/private/djmax,jane/testrsa.key
+Wrote /keybase/private/djmax,jane/testrsa.pem
 ```
 
 What happened:

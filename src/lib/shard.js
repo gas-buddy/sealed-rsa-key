@@ -1,6 +1,6 @@
 import nconf from 'nconf';
 import crypto from 'crypto';
-import { AES_ALGO, runCrypto } from '../lib/crypto';
+import { AES_ALGO, runCrypto, checkSha } from '../lib/crypto';
 import { kbPath, read, hiddenPrompt } from './util';
 
 export async function getShard(rl, keypart) {
@@ -15,11 +15,7 @@ export async function getShard(rl, keypart) {
   const sha = rawWithSha.slice(0, 20);
   const raw = rawWithSha.slice(20);
 
-  const shasum = crypto.createHash('sha1');
-  shasum.update(raw);
-  const shaCheck = shasum.digest();
-
-  if (Buffer.compare(shaCheck, sha) === 0) {
+  if (checkSha(sha, raw)) {
     return raw;
   }
   return null;

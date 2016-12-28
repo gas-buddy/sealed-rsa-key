@@ -15,9 +15,9 @@
   },
   "dependencies": {
     "nconf": "^0.8.4",
-    "node-forge": "^0.6.46",
+    "node-forge": "0.6.46",
     "prompt": "^1.0.0",
-    "secrets.js-grempe": "^1.1.0"
+    "secrets.js-grempe": "1.1.0"
   },
   "devDependencies": {
     "babel-cli": "^6.16.0",

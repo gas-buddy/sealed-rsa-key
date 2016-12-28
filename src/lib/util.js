@@ -51,6 +51,7 @@ export async function read(fn) {
 }
 
 export async function hiddenPrompt(rl, query) {
+  /* istanbul ignore next */
   return new Promise((accept) => {
     const stdin = process.openStdin();
     const onDataHandler = function onDataHandler(char) {

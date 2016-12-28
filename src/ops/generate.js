@@ -1,19 +1,22 @@
 import nconf from 'nconf';
-import crypto from 'crypto';
 import { pki } from 'node-forge';
-import { AES_ALGO, runCrypto } from '../lib/crypto';
 import { exists, write, kbPath } from '../lib/util';
 import { getKeymasters, parseKeymaster } from '../lib/keymasters';
 
 async function generate(args, state, callback) {
-  const keymasters = getKeymasters(args[1], callback);
+  const keyname = args[1];
+  if (!keyname) {
+    callback('Usage: generate <keyname> <keymasters>');
+    return;
+  }
+
+  const keymasters = getKeymasters(args[2], callback);
   if (!keymasters) {
     return;
   }
 
   if (!state.secret) {
-    state.error('The shared secret is not unsealed. You must unseal first.');
-    callback();
+    callback('The shared secret is not unsealed. You must unseal first.');
     return;
   }
 
@@ -44,14 +47,8 @@ async function generate(args, state, callback) {
     e: 0x10001,
   }, (err, k) => (err ? reject(err) : accept(k))));
 
-  const iv = state.secret.slice(0, 16);
-  const symm = state.secret.slice(16);
-  const cipher = crypto.createCipheriv(AES_ALGO, symm, iv);
-
+  const encryptedKey = pki.encryptRsaPrivateKey(keypair.privateKey, state.secret.toString('base64'));
   const publicKey = pki.publicKeyToPem(keypair.publicKey);
-  const rawPrivateKey = Buffer.from(pki.privateKeyToPem(keypair.privateKey));
-
-  const cipheredKey = runCrypto(cipher, rawPrivateKey);
 
   const done = {};
   for (const km of keymasters) {
@@ -59,18 +56,19 @@ async function generate(args, state, callback) {
     const { folderName } = parseKeymaster(km);
     if (!done[folderName]) {
       await write(
-        kbPath(folderName, `${nconf.get('keyname')}.key`),
-        cipheredKey,
+        kbPath(folderName, `${keyname}.key`),
+        encryptedKey,
       );
       await write(
-        kbPath(folderName, `${nconf.get('keyname')}.pem`),
+        kbPath(folderName, `${keyname}.pem`),
         publicKey,
       );
       done[folderName] = true;
     }
   }
-  state.keypair = keypair;
-  callback('Key pair generated');
+  state.keys = state.keys || {};
+  state.keys[keyname] = keypair;
+  callback(`Key pair '${keyname}' generated`);
 }
 
 export default async function wrappedGenerate(args, state, callback) {

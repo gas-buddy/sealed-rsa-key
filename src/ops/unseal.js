@@ -1,7 +1,7 @@
 import nconf from 'nconf';
 import crypto from 'crypto';
 import secrets from 'secrets.js-grempe';
-import { AES_ALGO, runCrypto } from '../lib/crypto';
+import { AES_ALGO, runCrypto, checkSha } from '../lib/crypto';
 import { read, write, exists, kbPath, hiddenPrompt } from '../lib/util';
 import { getKeymasters, parseKeymaster } from '../lib/keymasters';
 import { getShard } from '../lib/shard';
@@ -30,9 +30,20 @@ async function completeUnseal(keymasters, state, callback) {
     }
   }
 
-  state.secret = Buffer.from(secrets.combine(secretParts), 'hex');
-  state.rl.setPrompt(`${nconf.get('keyname')}:unsealed> `);
-  callback('unsealed');
+  const candidate = Buffer.from(secrets.combine(secretParts), 'hex');
+  if (candidate.byteLength !== 52) { // 20 byte sha, 32 byte key
+    callback(`Could not unseal key with ${secretParts.length} shards`);
+    return;
+  }
+  const secret = candidate.slice(20);
+
+  if (checkSha(candidate.slice(0, 20), secret)) {
+    state.secret = secret;
+    state.rl.setPrompt(`${nconf.get('keyname')}:unsealed> `);
+    callback('Secret has been unsealed');
+  } else {
+    callback(`Resulting secret did not validate with ${secretParts.length} shards`);
+  }
 }
 
 async function startUnseal(keymasters, state, callback) {
@@ -57,7 +68,7 @@ async function startUnseal(keymasters, state, callback) {
       );
     }
   }
-  callback();
+  callback('Unseal in process. Other users must approve the request');
 }
 
 export default async function unseal(args, state, callback) {

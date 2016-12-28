@@ -1,5 +1,5 @@
 import crypto from 'crypto';
-import { AES_ALGO, runCrypto } from '../lib/crypto';
+import { AES_ALGO, runCrypto, checkSha } from '../lib/crypto';
 
 const CRYPTO_VERSION = Buffer.from([1]);
 
@@ -9,7 +9,7 @@ export async function encrypt(args, state, callback) {
   }
 
   const iv = crypto.randomBytes(16);
-  const cipher = crypto.createCipheriv(AES_ALGO, state.secret.slice(16), iv);
+  const cipher = crypto.createCipheriv(AES_ALGO, state.secret, iv);
 
   const content = Buffer.from(args[1], args[2] || 'utf8');
   const shasum = crypto.createHash('sha1');
@@ -37,17 +37,11 @@ export async function decrypt(args, state, callback) {
   const iv = pkg.slice(1, 17);
   const cipherText = pkg.slice(17);
 
-  const cipher = crypto.createDecipheriv(AES_ALGO, state.secret.slice(16), iv);
+  const cipher = crypto.createDecipheriv(AES_ALGO, state.secret, iv);
   const shaAndRaw = runCrypto(cipher, cipherText);
-
-  const sha = shaAndRaw.slice(0, 20);
   const raw = shaAndRaw.slice(20);
 
-  const shasum = crypto.createHash('sha1');
-  shasum.update(raw);
-  const shaCheck = shasum.digest();
-
-  if (Buffer.compare(shaCheck, sha) === 0) {
+  if (checkSha(shaAndRaw.slice(0, 20), raw)) {
     callback(raw.toString(args[2] || 'utf8'));
     return raw;
   }

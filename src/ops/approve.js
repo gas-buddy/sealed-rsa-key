@@ -33,13 +33,15 @@ export default async function approve(args, state, callback) {
   const passphrase = await hiddenPrompt(state.rl, 'Unseal passphrase: ');
 
   const decipher = crypto.createDecipher(AES_ALGO, passphrase);
+  // Which gives us a symmetric key to encrypt our shard with
   const symmetricKey = runCrypto(decipher, cipherKey);
 
   const iv = crypto.randomBytes(16);
   const cipher = crypto.createCipheriv(AES_ALGO, symmetricKey, iv);
 
   const cipheredShard = runCrypto(cipher, shard);
-  await write(kbPath(folderName, `${nconf.get('keyname')}.response`), cipheredShard);
+  const approval = Buffer.concat([iv, cipheredShard]);
+  await write(kbPath(folderName, `${nconf.get('keyname')}.response`), approval);
   fs.unlinkSync(req);
 
   return callback('The request has been approved');
