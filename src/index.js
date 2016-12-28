@@ -48,6 +48,14 @@ Top-level commands:
     Encrypt some content using the symmetric secret key
   decrypt <content> [format]
     Decrypt some ciphertext using the symmetric secret key
+  pki encrypt <content> [format]
+    Encrypt some content using the current keypair
+  pki decrypt <content> [format]
+    Decrypt some content using the current keypair
+  pki selfsign [output filename]
+    Generate a self signed certificate for the current keypair
+  pki csr <csr file> [ca cert]
+    Create a certificate for a CSR
 `);
 }
 

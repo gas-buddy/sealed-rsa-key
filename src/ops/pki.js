@@ -1,6 +1,6 @@
 import nconf from 'nconf';
 import { pki } from 'node-forge';
-import { read } from '../lib/util';
+import { read, write } from '../lib/util';
 
 const certExtensions = [{
   name: 'basicConstraints',
@@ -99,7 +99,12 @@ async function selfSign(args, state, callback) {
 
   cert.publicKey = state.keypair.publicKey;
   cert.sign(state.keypair.privateKey);
-  callback(pki.certificateToPem(cert));
+
+  const final = pki.certificateToPem(cert);
+  if (args[2]) {
+    await write(args[2], final);
+  }
+  callback(final);
 }
 
 async function signCsr(args, state, callback) {
@@ -116,7 +121,11 @@ async function signCsr(args, state, callback) {
   cert.validity.notAfter = new Date();
   cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
   cert.setSubject(csr.subject.attributes);
-  //    cert.setIssuer(caCert.subject.attributes);
+
+  if (args[3]) {
+    const caCert = pki.certificateFromPem(await read(args[3]));
+    cert.setIssuer(caCert.subject.attributes);
+  }
 
   cert.setExtensions(certExtensions);
 
