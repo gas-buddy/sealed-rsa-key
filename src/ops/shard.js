@@ -1,7 +1,8 @@
 import nconf from 'nconf';
 import crypto from 'crypto';
 import secrets from 'secrets.js-grempe';
-import { write, kbPath } from '../lib/util';
+import { write, kbPath, hiddenPrompt } from '../lib/util';
+import { AES_ALGO, runCrypto, sha } from '../lib/crypto';
 import { getKeymasters, parseKeymaster } from '../lib/keymasters';
 
 const usage = 'shard <shards> <threshold> <keymasters>';
@@ -44,14 +45,15 @@ export default async function shard(args, state, callback) {
     return callback(`Keymaster list must be the same length (${keymasters.length}) as the number of shards (${shardCount})`);
   }
 
+  state.log('Please choose a passphrase to protect the shards until they are accepted.');
+  state.log('Share this passphrase over an offline channel with the keymasters.');
+  const passphrase = await hiddenPrompt(state.rl, 'Passphrase: ');
+
   const secret = crypto.randomBytes(32);
   state.rl.setPrompt(`${nconf.get('keyname')}:unsealed> `);
 
   // Provide a little certainty about the secret when unsharded
-  const shasum = crypto.createHash('sha1');
-  shasum.update(secret);
-  const sha = shasum.digest();
-  const finalSecret = Buffer.concat([sha, secret]);
+  const finalSecret = Buffer.concat([sha(secret), secret]);
 
   const shards = secrets.share(finalSecret.toString('hex'), shardCount, threshold);
 
@@ -60,10 +62,13 @@ export default async function shard(args, state, callback) {
     const km = keymasters[i];
     const s = shards[i];
 
+    const shardCipher = crypto.createCipher(AES_ALGO, passphrase);
+    const pendingShard = runCrypto(shardCipher, sha(s), s);
+
     const { folderName, suffix } = parseKeymaster(km);
     const fname = `${nconf.get('keyname')}${suffix}.shard`;
     const destinationPath = kbPath(folderName, fname);
-    promises.push(write(destinationPath, s));
+    promises.push(write(destinationPath, pendingShard));
   }
 
   await Promise.all(promises);

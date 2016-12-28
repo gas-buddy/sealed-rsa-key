@@ -11,12 +11,14 @@ export function runCrypto(cipher, ...input) {
   return Buffer.concat(parts);
 }
 
-export function checkSha(sha, ...parts) {
+export function sha(...parts) {
   const shasum = crypto.createHash('sha1');
   for (const p of parts) {
     shasum.update(p);
   }
-  const shaCheck = shasum.digest();
+  return shasum.digest();
+}
 
-  return Buffer.compare(shaCheck, sha) === 0;
+export function checkSha(originalSha, ...parts) {
+  return Buffer.compare(sha(...parts), originalSha) === 0;
 }

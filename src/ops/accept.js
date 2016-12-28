@@ -1,7 +1,7 @@
 import fs from 'fs';
 import nconf from 'nconf';
 import crypto from 'crypto';
-import { AES_ALGO, runCrypto } from '../lib/crypto';
+import { AES_ALGO, runCrypto, checkSha } from '../lib/crypto';
 import { hiddenPrompt, exists, read, write, kbPath } from '../lib/util';
 import { parseKeymaster } from '../lib/keymasters';
 import { getShard } from '../lib/shard';
@@ -29,7 +29,7 @@ export async function accept(args, state, callback) {
 
   const keymaster = args[1];
   if (!keymaster) {
-    callback('Usage: approve <keymaster>');
+    callback('Usage: accept <keymaster>');
     return;
   }
 
@@ -46,11 +46,22 @@ export async function accept(args, state, callback) {
   }
 
   state.log(`Operating on raw shard at ${sourcePath}`);
+  const cipheredShard = await read(sourcePath);
+
+  const passphrase = await hiddenPrompt(state.rl, 'Shard Passphrase: ');
+  const shardDecipher = crypto.createDecipher(AES_ALGO, passphrase);
+  const shaAndShard = runCrypto(shardDecipher, cipheredShard);
+  const raw = shaAndShard.slice(20);
+
+  if (!checkSha(shaAndShard.slice(0, 20), raw)) {
+    callback('Invalid passphrase or corrupt shard');
+    return;
+  }
+
   state.log('Please choose a password to protect your key shard');
   const password = await hiddenPrompt(state.rl, 'Password: ');
 
   const cipher = crypto.createCipher(AES_ALGO, password);
-  const raw = await read(sourcePath);
 
   const shasum = crypto.createHash('sha1');
   shasum.update(raw);

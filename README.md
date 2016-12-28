@@ -6,18 +6,23 @@ sealed-rsa-key
 Whenever you find yourself writing a cryptography system, you should be worried. I am. But perhaps our use case is weird enough that
 there wasn't an off the shelf option, or at least that's what I told myself when I wrote this. Our requirement is that we want an RSA key pair
 for long term storage of certain sensitive data. Which is to say we don't expect to decrypt that data unless something goes wrong.
-We want to be able to encrypt data freely with it. The private key should never touch a disk (forgetting swap).
+We want to be able to encrypt data freely with it. The private key should never touch a disk (forgetting swap). We use this
+key pair to sign intermediate certificates, and encrypt sensitive data for backup purposes.
 
+Requirements
+============
 sealed-rsa-key relies on [kbfs from Keybase.io](https://keybase.io) to exchange secure messages between known entities. Keybase users
 are identified by their username (e.g. djmax). Mostly for testing, in the various places where a keybase identifier can be used, you
 can append a hash sign and a secondary identifier (e.g. djmax#2) so that you don't need other actual identities to try things out.
 So for example, if you want to have three "fake" keymasters for testing, you could run "shard 3 2 djmax,djmax#2,djmax#3".
 
+Walkthrough
+===========
 The easiest way to understand sealed-rsa-key is to go through the commands necessary to generate a secure key. We will have three
 keymasters - djmax, bob and jane. djmax will "run" the process - meaning his computer will hold sensitive secrets in memory while
 the process runs.
 
-The first step is for djmax to shard a secret amonst the three of them. He runs the sealed-rsa-key REPL (read-eval-print loop),
+The first step is for djmax to shard a secret amongst the three of them. He runs the sealed-rsa-key REPL (read-eval-print loop),
 typically by running `sealed-rsa-key`. If you've downloaded the source, you can also `npm run cli` from the source directory.
 
 sealed-rsa-key uses nconf. As such you can pass arguments as environment variables, command arguments, or from a configuration file.
@@ -33,11 +38,14 @@ Set me to 'djmax'
 
 Now, the next time you run the tool, those values will be automatically applied.
 
-Next, sealed-rsa-key must generate a sharded secret key. In our example we will have 3 shards and require 2 to unseal the key.
+Next, sealed-rsa-key must generate a sharded secret key (32 byte symmetric key used in aes-256-cbc). In our example we will have 3 shards and require 2 to unseal the key.
 
 ```
 djmax# sealed-rsa-key
 > shard 3 2 djmax,bob,jane
+Please choose a passphrase to protect the shards until they are accepted.
+Share this passphrase over an offline channel with the keymasters.
+Passphrase: <you enter a passphrase>
 Wrote /keybase/private/djmax/testkey.shard
 Wrote /keybase/private/bob,djmax/testkey.shard
 Wrote /keybase/private/djmax,jane/testkey.shard
@@ -46,18 +54,19 @@ or you would need to unseal to create the RSA keypair.
 ```
 
 Here's what happened as a result:
-1. We generated a random symmetric (aes-256) key
-2. We sharded the symmetric key into n(3) key parts using [Shamir's Secret Sharing](https://en.wikipedia.org/wiki/Shamir's_Secret_Sharing), requiring m(2) to reassemble.
-3. We wrote the shards to separate folders.
+1. We generated a random 32 byte symmetric key, along with a hash of said key that will be part of the sharded secret
+2. We sharded the key package into n(3) key parts using [Shamir's Secret Sharing](https://en.wikipedia.org/wiki/Shamir's_Secret_Sharing), requiring m(2) to reassemble.
+3. We encrypted the shards using the passphrase that will be shared offline
+4. We wrote the encrypted shards to separate keybase folders (one to the individual private folder and the rest to the "shared folders" with the target users).
 
-Note that the shards are "in the clear" in those keybase folders, which isn't something you should keep. Also note that the
-RSA key pair has NOT BEEN generated yet. This only happens after all the shards have been secured successfully.
-So the next step is for djmax, bob and jane to secure them, which the REPL exposes via the "accept" command.
+Note that the RSA key pair has NOT been generated yet. This only happens after all the shards have been secured successfully.
+So the next step is for djmax, bob and jane to secure the shards, which the REPL exposes via the "accept" command.
 
 ```
 bob# sealed-rsa-key
 > accept djmax
 Operating on raw shard at /keybase/private/bob,djmax/testkey.shard
+Shard passphrase: <you enter the unseal passphrase>
 Please choose a password to protect your key shard
 Password: <you enter a password>
 Wrote /keybase/private/bob/testkey.shard
