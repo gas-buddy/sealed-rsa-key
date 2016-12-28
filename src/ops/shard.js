@@ -44,7 +44,7 @@ export default async function shard(args, state, callback) {
     return callback(`Keymaster list must be the same length (${keymasters.length}) as the number of shards (${shardCount})`);
   }
 
-  const secret = state.secret = crypto.randomBytes(32);
+  const secret = crypto.randomBytes(32);
   state.rl.setPrompt(`${nconf.get('keyname')}:unsealed> `);
 
   // Provide a little certainty about the secret when unsharded
@@ -69,5 +69,6 @@ export default async function shard(args, state, callback) {
   await Promise.all(promises);
   state.log('You must keep this CLI session active while the keys are accepted,');
   state.log('or you would need to unseal to create the RSA keypair.');
+  state.secret = secret;
   return callback(`${promises.length} shards generated`);
 }
