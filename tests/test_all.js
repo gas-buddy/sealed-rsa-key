@@ -6,7 +6,8 @@ import generate from '../src/ops/generate';
 import pki from '../src/ops/pki';
 import { encrypt, decrypt } from '../src/ops/encryptDecrypt';
 import { exists, setLogger } from '../src/lib/util';
-import { accept } from '../src/ops/accept';
+import { accept, verify } from '../src/ops/accept';
+import { getShard } from '../src/lib/shard';
 
 // Fake out the password prompting because it messes with stdin/out
 require('../src/lib/util').hiddenPrompt = () => 'test_password';
@@ -133,6 +134,32 @@ tap.test('should encrypt and decrypt with pki', async (t) => {
   });
   await pki(['pki', 'decrypt', enc], state, (e) => {
     t.strictEquals(e, 'testing345', 'decrypted value should match');
+  });
+});
+
+tap.test('should self sign', async (t) => {
+  nconf.overrides({
+    me: 'djmax',
+    keyname: 'testkey',
+    kbfsroot: '/keybase',
+    cn: 'TestCN',
+    country: 'US',
+    state: 'Massachusetts',
+    locality: 'Boston',
+    org: 'Test Organization',
+    'org-unit': 'Global',
+    'cert-validity-years': 1,
+  });
+  await pki(['pki', 'selfsign'], state, (e) => {
+    t.match(e, /BEGIN CERTIFICATE/, 'Should generate a PEM');
+  });
+});
+
+tap.test('should get our shard', async (t) => {
+  const s = await getShard(state.rl);
+  t.ok(s, 'should get a shard');
+  await verify(['verify'], state, (e) => {
+    t.match(e, /is verified/, 'Shard should verify');
   });
 });
 

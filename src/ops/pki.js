@@ -1,3 +1,130 @@
+import nconf from 'nconf';
+import { pki } from 'node-forge';
+import { read } from '../lib/util';
+
+const certExtensions = [{
+  name: 'basicConstraints',
+  cA: true,
+}, {
+  name: 'keyUsage',
+  keyCertSign: true,
+  digitalSignature: true,
+  nonRepudiation: true,
+  keyEncipherment: true,
+  dataEncipherment: true,
+}, {
+  name: 'extKeyUsage',
+  serverAuth: true,
+  clientAuth: true,
+  codeSigning: true,
+  emailProtection: true,
+  timeStamping: true,
+}, {
+  name: 'nsCertType',
+  client: true,
+  server: true,
+  email: true,
+  objsign: true,
+  sslCA: true,
+  emailCA: true,
+  objCA: true,
+}];
+
+async function prompt(rl, q) {
+  return new Promise((accept) => {
+    rl.question(q, accept);
+  });
+}
+
+async function selfSign(args, state, callback) {
+  const cert = pki.createCertificate();
+  cert.serialNumber = String(Date.now());
+
+  let years = nconf.get('cert-validity-years');
+  if (!years) {
+    years = await prompt(state.rl, 'For how many years should the cert be valid? ');
+  }
+  cert.validity.notBefore = new Date();
+  cert.validity.notAfter = new Date();
+  cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + Number(years));
+
+  let cn = nconf.get('cn');
+  if (!cn) {
+    cn = await prompt(state.rl, 'Common Name: ');
+  }
+  let country = nconf.get('country');
+  if (!country) {
+    country = await prompt(state.rl, 'Country: ');
+  }
+  let st = nconf.get('state');
+  if (!st) {
+    st = await prompt(state.rl, 'State (long form): ');
+  }
+  let locality = nconf.get('locality');
+  if (!locality) {
+    locality = await prompt(state.rl, 'Locality/City: ');
+  }
+  let org = nconf.get('org');
+  if (!org) {
+    org = await prompt(state.rl, 'Organization: ');
+  }
+  let ou = nconf.get('org-unit');
+  if (!ou) {
+    ou = await prompt(state.rl, 'Organizational Unit: ');
+  }
+
+  const attrs = [{
+    name: 'commonName',
+    value: cn,
+  }, {
+    name: 'countryName',
+    value: country,
+  }, {
+    shortName: 'ST',
+    value: st,
+  }, {
+    name: 'localityName',
+    value: locality,
+  }, {
+    name: 'organizationName',
+    value: org,
+  }, {
+    shortName: 'OU',
+    value: ou,
+  }];
+  cert.setSubject(attrs);
+  cert.setIssuer(attrs);
+
+  cert.setExtensions(certExtensions);
+
+  cert.publicKey = state.keypair.publicKey;
+  cert.sign(state.keypair.privateKey);
+  callback(pki.certificateToPem(cert));
+}
+
+async function signCsr(args, state, callback) {
+  const csr = pki.certificationRequestFromPem(await read(args[2]));
+  if (!csr.verify()) {
+    callback('Invalid CSR');
+    return;
+  }
+
+  const cert = pki.createCertificate();
+  cert.serialNumber = String(Date.now());
+
+  cert.validity.notBefore = new Date();
+  cert.validity.notAfter = new Date();
+  cert.validity.notAfter.setFullYear(cert.validity.notBefore.getFullYear() + 1);
+  cert.setSubject(csr.subject.attributes);
+  //    cert.setIssuer(caCert.subject.attributes);
+
+  cert.setExtensions(certExtensions);
+
+  cert.publicKey = csr.publicKey;
+  cert.sign(state.keypair.privateKey);
+  callback(pki.certificateToPem(cert));
+}
+
 export default async function op(args, state, callback) {
   if (!state.keypair) {
     return callback('The keypair is not available. It must be unsealed or generated first');
@@ -12,6 +139,10 @@ export default async function op(args, state, callback) {
     const raw = Buffer.from(plain, 'binary').toString(args[3] || 'utf8');
     callback(raw);
     return raw;
+  } else if (args[1] === 'selfsign') {
+    return selfSign(args, state, callback);
+  } else if (args[1] === 'csr') {
+    return signCsr(args, state, callback);
   }
   return callback('Unknown operation. Must be encrypt or decrypt');
 }
