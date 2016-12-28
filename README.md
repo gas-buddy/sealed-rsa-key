@@ -1,6 +1,8 @@
 sealed-rsa-key
 ==============
 
+[![wercker status](https://app.wercker.com/status/1a3f8bbd82aa82adb474d6b781f0b4ef/m/master "wercker status")](https://app.wercker.com/project/byKey/1a3f8bbd82aa82adb474d6b781f0b4ef)
+
 Whenever you find yourself writing a cryptography system, you should be worried. I am. But perhaps our use case is weird enough that
 there wasn't an off the shelf option, or at least that's what I told myself when I wrote this. Our requirement is that we want an RSA key pair
 for long term storage of certain sensitive data. Which is to say we don't expect to decrypt that data unless something goes wrong.
