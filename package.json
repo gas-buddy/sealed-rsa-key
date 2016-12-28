@@ -13,6 +13,9 @@
     "ci-cover": "nyc check-coverage --lines=70 --statements=70 --functions=80 --branches=50",
     "cli": "node -r babel-register src/index.js"
   },
+  "bin": {
+    "sealed-rsa-key": "build/index.js"
+  },
   "dependencies": {
     "nconf": "^0.8.4",
     "node-forge": "0.6.46",
