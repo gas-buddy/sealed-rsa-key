@@ -13,7 +13,7 @@ export function parseKeymaster(keymaster) {
   const m = keymaster.match(/([^#]+)#?(.*)/);
   let folderName = nconf.get('me');
   if (folderName !== m[1]) {
-    folderName = [folderName, m[1]].sort().join(',');
+    folderName = [folderName, m[1]].join(',');
   }
   return {
     folderName,
