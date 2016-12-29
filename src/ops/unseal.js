@@ -30,12 +30,26 @@ async function completeUnseal(keymasters, state, callback) {
     }
   }
 
-  const candidate = Buffer.from(secrets.combine(secretParts), 'hex');
-  if (candidate.byteLength !== 52) { // 20 byte sha, 32 byte key
-    callback(`Could not unseal key with ${secretParts.length} shards`);
+  if (secretParts.length <= 1) {
+    callback('Could not unseal key with a single shard');
     return;
   }
-  const secret = candidate.slice(20);
+
+  let secret;
+  let candidate;
+
+  try {
+    const combined = secrets.combine(secretParts);
+    candidate = Buffer.from(combined, 'hex');
+    if (candidate.byteLength !== 52) { // 20 byte sha, 32 byte key
+      callback(`Could not unseal key with ${secretParts.length} shards`);
+      return;
+    }
+    secret = candidate.slice(20);
+  } catch (error) {
+    callback(`Could not unseal key with ${secretParts.length} shards.`);
+    return;
+  }
 
   if (checkSha(candidate.slice(0, 20), secret)) {
     state.secret = secret;

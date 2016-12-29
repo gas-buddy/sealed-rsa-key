@@ -1,4 +1,5 @@
 import fs from 'fs';
+import path from 'path';
 import nconf from 'nconf';
 import crypto from 'crypto';
 import { AES_ALGO, runCrypto, checkSha } from '../lib/crypto';
@@ -68,8 +69,17 @@ export async function accept(args, state, callback) {
   const sha = shasum.digest();
 
   const cipherShard = runCrypto(cipher, sha, raw);
-  fs.unlinkSync(sourcePath);
-  await write(destPath, cipherShard);
+  try {
+    await write(destPath, cipherShard);
+  } catch (error) {
+    state.error(`Failed to write ${destPath}`);
+    state.log('Ciphered shard:');
+    state.log(cipherShard.toString('base64'));
+    callback(error);
+  }
+  if (path.normalize(destPath) !== path.normalize(sourcePath)) {
+    fs.unlinkSync(sourcePath);
+  }
   callback(`shard secured and written to ${destPath}`);
 }
 

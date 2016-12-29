@@ -1,5 +1,6 @@
 #!/usr/bin/env node
 /* eslint-disable no-console */
+import os from 'os';
 import nconf from 'nconf';
 import repl from 'repl';
 import shard from './ops/shard';
@@ -17,7 +18,7 @@ nconf
   .env()
   .file({ file: 'config.json' })
   .defaults({
-    kbfsroot: '/keybase',
+    kbfsroot: os.type() === 'Windows_NT' ? 'k:' : '/keybase',
   });
 
 function help() {

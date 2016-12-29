@@ -1,3 +1,4 @@
+import fs from 'fs';
 import tap from 'tap';
 import nconf from 'nconf';
 import mockfs from 'mock-fs';
@@ -8,7 +9,7 @@ import loadkey from '../src/ops/loadkey';
 import pki from '../src/ops/pki';
 import approve from '../src/ops/approve';
 import { encrypt, decrypt } from '../src/ops/encryptDecrypt';
-import { exists, setLogger } from '../src/lib/util';
+import { exists, setLogger, write, read } from '../src/lib/util';
 import { accept, verify } from '../src/ops/accept';
 import { getShard } from '../src/lib/shard';
 
@@ -63,6 +64,7 @@ ZDGRs55xuoeLDJ/ZRFf9bI+IaCUd1YrfYcHIl3G87Av+r49YVwqRDT0VDV7uLgqn
     '/keybase/private/djmax': {},
     '/keybase/private/user1': {},
     '/keybase/private/djmax,user1': {},
+    '/keybase/private/user1,djmax': {},
     '/keybase/private/djmax,user2': {},
   });
   t.end();
@@ -119,11 +121,14 @@ tap.test('should accept the shards', async (t) => {
     keyname: 'testkey',
     kbfsroot: '/keybase',
   });
+  await write('/keybase/private/user1,djmax/testkey.shard',
+    await read('/keybase/private/djmax,user1/testkey.shard'));
+  fs.unlinkSync('/keybase/private/djmax,user1/testkey.shard');
   await accept(['accept', 'djmax'], state, (e) => {
     t.match(e, /shard secured/i, 'shard should be accepted');
   });
   t.ok(await exists('/keybase/private/user1/testkey.shard'), 'Should write user1 private shard');
-  t.ok(!(await exists('/keybase/private/djmax,user1/testkey.shard')), 'Should remove cleartext user1 shard');
+  t.ok(!(await exists('/keybase/private/user1,djmax/testkey.shard')), 'Should remove cleartext user1 shard');
 });
 
 tap.test('should generate the keys', async (t) => {
@@ -222,9 +227,13 @@ tap.test('should unseal', async (t) => {
     keyname: 'testkey',
     kbfsroot: '/keybase',
   });
+  await write('/keybase/private/user1,djmax/testkey.request',
+    await read('/keybase/private/djmax,user1/testkey.request'));
   await approve(['approve', 'djmax'], state, (e) => {
     t.match(e, /request has been approved/i, 'request should approve');
   });
+  await write('/keybase/private/djmax,user1/testkey.response',
+    await read('/keybase/private/user1,djmax/testkey.response'));
   nconf.overrides({
     me: 'djmax',
     keyname: 'testkey',
