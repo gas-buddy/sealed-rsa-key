@@ -11,7 +11,7 @@ export async function getShard(rl, keypart) {
   const ciphered = await read(shardPath);
   const dec = crypto.createDecipher(AES_ALGO, password);
 
-  const rawWithSha = runCrypto(dec, ciphered);
+  const rawWithSha = runCrypto(dec, Buffer.from(ciphered.toString('ascii'), 'base64'));
   const sha = rawWithSha.slice(0, 20);
   const raw = rawWithSha.slice(20);
 

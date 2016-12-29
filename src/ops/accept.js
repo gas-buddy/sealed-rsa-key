@@ -70,7 +70,7 @@ export async function accept(args, state, callback) {
 
   const cipherShard = runCrypto(cipher, sha, raw);
   try {
-    await write(destPath, cipherShard);
+    await write(destPath, cipherShard.toString('base64'));
   } catch (error) {
     state.error(`Failed to write ${destPath}`);
     state.log('Ciphered shard:');
