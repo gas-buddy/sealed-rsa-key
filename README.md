@@ -1,6 +1,8 @@
 sealed-rsa-key
 ==============
 
+[![Greenkeeper badge](https://badges.greenkeeper.io/gas-buddy/sealed-rsa-key.svg)](https://greenkeeper.io/)
+
 [![wercker status](https://app.wercker.com/status/1a3f8bbd82aa82adb474d6b781f0b4ef/m/master "wercker status")](https://app.wercker.com/project/byKey/1a3f8bbd82aa82adb474d6b781f0b4ef)
 
 Whenever you find yourself writing a cryptography system, you should be worried. I am. But perhaps our use case is weird enough that
